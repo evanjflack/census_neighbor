@@ -1,0 +1,10 @@
+data/
+*.csv
+*.Rproj*
+.Rproj.user
+*.Rhistory
+*.log*
+*log*
+*.out*
+*.log
+*.DS_Store*
