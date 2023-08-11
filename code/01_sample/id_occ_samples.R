@@ -14,7 +14,7 @@ start_log_file("log/id_occ_samples")
 
 # Build Sample -----------------------------------------------------------------
 year <- 1880
-sub_sample <- "_ny"
+sub_sample <- ""
 occ_codes <- c("058", "075", "093")
 
 message("Start ", year, ".")
