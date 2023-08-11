@@ -21,14 +21,42 @@ sample <- fread(paste0("../../data/cleaned/black_neighbor_sample_", year,
 # sample <- fread(paste0("../../data/cleaned/occ_", "093", "_sample_", year, 
 #                        sub_sample, ".csv"))
 
+male_sample <- sample %>% 
+  .[male_child == 1, ] %>%
+  .[, is_lit := ifelse(lit == 4, 1, 0)] %>% 
+  .[, is_native := ifelse(nativity ==1, 1, 0)]
+
+var <- "is_native"
+dtp <- male_sample %>% 
+  .[nativity != 5] %>% 
+  .[match == 1, ] %>% 
+  .[match_male_child_hh == 1, ] %>% 
+  .[, y := get(var)] %>% 
+  .[, .(mean = mean(y), 
+        sd = sd(y), 
+        obs = .N), by = black_dist] %>% 
+  .[, se := sd / sqrt(obs)] %>% 
+  .[, `:=`(lb = mean - 1.96 * se, ub = mean + 1.96 * se)]
+
+ggplot(dtp[black_dist <= 10]) + 
+  aes(x = black_dist, y = mean, ymin = lb, ymax = ub) + 
+  geom_point() + 
+  geom_errorbar()
+
+fit <- lm_robust(is_native ~ black_dist, 
+                 data = male_sample[nativity != 5 & match == 1], 
+                 se_type = "stata")
+summary(fit)
+
 
 hh_sample <- sample %>% 
   .[relate == 1, ] %>% 
-  .[, na_occ := ifelse(occscore == 0, 1, 0)]
+  .[, na_occ := ifelse(occscore == 0, 1, 0)] %>% 
+  .[, is_lit := ifelse(lit == 4, 1, 0)]
 
-var <- "occscore"
+var <- "is_lit"
 dtp <- hh_sample %>% 
-  .[occscore > 0] %>% 
+  .[lit > 0] %>% 
   .[match_male_child_hh == 1, ] %>% 
   .[, y := get(var)] %>% 
   .[, .(mean = mean(y), 
@@ -44,8 +72,8 @@ ggplot(dtp[black_dist <= 10]) +
 
 names(sample)
 
-fit <- lm_robust(occscore ~ black_dist, 
-                 data = hh_sample[occscore > 0 & black_dist <= 5], 
+fit <- lm_robust(is_lit ~ black_dist, 
+                 data = hh_sample[lit > 0 & black_dist <= 5], 
                  se_type = "stata")
 summary(fit)
 

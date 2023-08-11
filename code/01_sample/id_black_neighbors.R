@@ -20,6 +20,8 @@ dt <- fread(paste0("../../data/census_raw/ipums_", year, sub_sample,
                    ".csv")) %>% 
   setnames(tolower(names(.)))
 
+names(dt)
+
 # Crosswalk
 year1 <- 1880
 year2 <- 1900
@@ -75,7 +77,8 @@ dt %<>%
 sample <- dt %>%
   merge(black_dist, by = "serial") %>%
  .[, .(histid,  year, serial, reel_seq_page, hh_line, pernum, 
-       black_line, black_dist, sex, age, race, relate, occscore, erscor50)] 
+       black_line, black_dist, sex, age, race, nativity, school, lit,
+       relate, occscore, erscor50)] 
  
  
 sample %<>% 
