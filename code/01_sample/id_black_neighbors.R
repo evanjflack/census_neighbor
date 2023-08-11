@@ -14,7 +14,7 @@ start_log_file("log/id_black_neighbors")
 # Build Sample -----------------------------------------------------------------
 
 year <- 1880
-sub_sample <- "_ny"
+sub_sample <- ""
 
 dt <- fread(paste0("../../data/census_raw/ipums_", year, sub_sample, 
                    ".csv")) %>% 
