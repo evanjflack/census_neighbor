@@ -14,24 +14,11 @@ source("../supporting_code/define_fxns.R")
 # start_log_file("log/id_black_neighbors")
 
 year <- 1880
-sub_sample <- ""
+sub_sample <- "_ny"
 sample <- fread(paste0("../../data/cleaned/black_neighbor_sample_", year, 
                        sub_sample, ".csv"))
 
-sample %<>% 
-  .[order(serial, black_dist)] %>% 
-  .[, .SD[1], by = serial]
-
 View(sample[1:1000])
-
-
-uniqueN(sample$serial)
-
-sum(sample$relate == 1)
-
-
-
-
 
 
 sample %<>% 
@@ -40,8 +27,17 @@ sample %<>%
 head(sample)
 
 hh_sample <- sample %>% 
-  .[, min_relate := min(relate), by = serial] %>% 
-  .[relate == min_relate, ]
+  .[relate == 1] %>% 
+  .[, is_lit := ifelse(lit == 4, 1, 0)]
+
+var <- "is_lit"
+dtp <- male_sample %>% 
+  .[, y := get(var)] %>% 
+  .[, .(mean = mean(y), 
+        sd = sd(y), 
+        obs = .N), by = black_dist] %>% 
+  .[, se := sd / sqrt(obs)] %>% 
+  .[, `:=`(lb = mean - 1.96 * se, ub = mean + 1.96 * se)]
 
 
 
