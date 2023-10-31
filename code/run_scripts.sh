@@ -23,4 +23,4 @@ ml load R/4.1.2
 
 cd 01_sample/
 
-Rscript id_occ_samples.R
+Rscript id_black_neighbors.R
