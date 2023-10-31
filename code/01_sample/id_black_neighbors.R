@@ -27,7 +27,7 @@ dt <- fread(paste0(wd, "census_raw/ipums_", year, sub_sample,
 year1 <- 1880
 year2 <- 1900
 method <- "abe_nysiis_standard"
-xwalk <- fread(paste0("../../data/crosswalks/crosswalk_", year1, "_", year2, 
+xwalk <- fread(paste0(wd, "crosswalks/crosswalk_", year1, "_", year2, 
                       ".csv")) %>%
   .[get(method) == 1] %>%
   .[, paste0("histid_", c(year1, year2)), with = FALSE]
