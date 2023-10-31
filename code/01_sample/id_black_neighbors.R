@@ -35,12 +35,9 @@ xwalk <- fread(paste0("../../data/crosswalks/crosswalk_", year1, "_", year2,
 dt %<>% 
   .[, histid := tolower(histid)]
 
-
-
 # Only standard households (no group quarters)
 dt %<>% 
   .[gq %in% c(1, 2)]
-
 
 # Define page number
 dt %<>% 

@@ -7,7 +7,7 @@
 #SBATCH --partition=hlwill
 #SBATCH --time=08:00:00
 #SBATCH --mem=100GB
-#SBATCH --ntasks=16
+#SBATCH --ntasks=8
 
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=flack@stanford.edu
@@ -23,4 +23,4 @@ ml load R/4.1.2
 
 cd 01_sample/
 
-Rscript id_occ_samples.R
+Rscript id_black_neighbors.R
