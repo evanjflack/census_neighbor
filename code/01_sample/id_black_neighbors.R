@@ -16,11 +16,13 @@ start_log_file("log/id_black_neighbors")
 year <- 1880
 sub_sample <- ""
 
-dt <- fread(paste0("../../data/census_raw/ipums_", year, sub_sample, 
+#wd <- '~/Documents/projects/census_neighbor/data/'
+wd <- '~/liran/census_neighbor/data/'
+
+dt <- fread(paste0(wd, "census_raw/ipums_", year, sub_sample, 
                    ".csv")) %>% 
   setnames(tolower(names(.)))
 
-names(dt)
 
 # Crosswalk
 year1 <- 1880
@@ -30,6 +32,10 @@ xwalk <- fread(paste0("../../data/crosswalks/crosswalk_", year1, "_", year2,
                       ".csv")) %>%
   .[get(method) == 1] %>%
   .[, paste0("histid_", c(year1, year2)), with = FALSE]
+
+dt %<>% 
+  .[, histid := tolower(histid)]
+
 
 
 # Only standard households (no group quarters)
@@ -79,24 +85,22 @@ sample <- dt %>%
  .[, .(histid,  year, serial, reel_seq_page, hh_line, pernum, 
        black_line, black_dist, sex, age, race, nativity, school, lit,
        relate, occscore, erscor50)] 
- 
- 
+
 sample %<>% 
-   .[, histid := tolower(histid)] %>% 
-   merge(xwalk, by.x = "histid", by.y = paste0("histid_", 1880), all.x = T) %>% 
-   .[, match := ifelse(!is.na(histid_1900), 1, 0)]
- 
+  .[, histid := tolower(histid)] %>% 
+  merge(xwalk, by.x = "histid", by.y = paste0("histid_", 1880), all.x = T) %>% 
+  .[, match := ifelse(!is.na(histid_1900), 1, 0)]
+
 sample %<>% 
-   .[, male_child := ifelse(age <= 18 & sex == 1, 1, 0)] %>% 
-   .[, match_male_child := ifelse(male_child == 1 & match == 1, 1, 0)] %>%
-   .[, male_child_hh := max(male_child), by = serial] %>% 
-   .[, match_male_child_hh := max(match_male_child), by = serial] %>% 
-   .[male_child_hh == 1, ]
-  
+  .[, male_child := ifelse(age <= 18 & sex == 1, 1, 0)] %>% 
+  .[, match_male_child := ifelse(male_child == 1 & match == 1, 1, 0)] %>%
+  .[, male_child_hh := max(male_child), by = serial] %>% 
+  .[, match_male_child_hh := max(match_male_child), by = serial] %>% 
+  .[male_child_hh == 1]
 
 # Export -----------------------------------------------------------------------
 
-fwrite(sample, paste0("../../data/cleaned/black_neighbor_sample_", year, 
+fwrite(sample, paste0(wd, "cleaned/black_neighbor_sample_", year, 
                       sub_sample, ".csv"))
 
 end_log_file()
