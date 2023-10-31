@@ -18,8 +18,33 @@ sub_sample <- ""
 sample <- fread(paste0("../../data/cleaned/black_neighbor_sample_", year, 
                        sub_sample, ".csv"))
 
-# sample <- fread(paste0("../../data/cleaned/occ_", "093", "_sample_", year, 
-#                        sub_sample, ".csv"))
+sample %<>% 
+  .[order(serial, black_dist)] %>% 
+  .[, .SD[1], by = serial]
+
+View(sample[1:1000])
+
+
+uniqueN(sample$serial)
+
+sum(sample$relate == 1)
+
+
+
+
+
+
+sample %<>% 
+  .[match_male_child_hh == 1, ]
+
+head(sample)
+
+hh_sample <- sample %>% 
+  .[, min_relate := min(relate), by = serial] %>% 
+  .[relate == min_relate, ]
+
+
+
 
 male_sample <- sample %>% 
   .[male_child == 1, ] %>%

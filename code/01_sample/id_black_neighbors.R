@@ -14,10 +14,10 @@ start_log_file("log/id_black_neighbors")
 # Build Sample -----------------------------------------------------------------
 
 year <- 1880
-sub_sample <- ""
+sub_sample <- "_ny"
 
-# wd <- '~/Documents/projects/census_neighbor/data/'
-wd <- '~/liran/census_neighbor/data/'
+wd <- '~/Documents/projects/census_neighbor/data/'
+# wd <- '~/liran/census_neighbor/data/'
 
 dt <- fread(paste0(wd, "census_raw/ipums_", year, sub_sample, 
                    ".csv")) %>% 
@@ -71,6 +71,7 @@ dt %<>%
    .[, .(serial, hh_line, black_line)] %>%
    .[, black_dist := abs(hh_line - black_line)] %>% 
    .[order(serial, black_dist)] %>%
+   .[, .SD[1], by = serial] %>% 
    .[black_dist <= 10, ] %>% 
    .[, .(serial, black_line, black_dist)]
  
@@ -103,6 +104,9 @@ message(uniqueN(sample[match_male_child_hh == 1, serial]),
         ' HH with matched male children')
 
 message(sum(sample$match_male_child), ' matched male children')
+
+sample %<>% 
+  .[order(serial, pernum)]
 
 # Export -----------------------------------------------------------------------
 
