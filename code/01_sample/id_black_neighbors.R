@@ -16,13 +16,12 @@ start_log_file("log/id_black_neighbors")
 year <- 1880
 sub_sample <- ""
 
-#wd <- '~/Documents/projects/census_neighbor/data/'
+# wd <- '~/Documents/projects/census_neighbor/data/'
 wd <- '~/liran/census_neighbor/data/'
 
 dt <- fread(paste0(wd, "census_raw/ipums_", year, sub_sample, 
                    ".csv")) %>% 
   setnames(tolower(names(.)))
-
 
 # Crosswalk
 year1 <- 1880
@@ -91,12 +90,22 @@ sample %<>%
   merge(xwalk, by.x = "histid", by.y = paste0("histid_", 1880), all.x = T) %>% 
   .[, match := ifelse(!is.na(histid_1900), 1, 0)]
 
+message(round(mean(sample[sex == 1, match]), 3) * 100, '% sample match')
+
+
 sample %<>% 
   .[, male_child := ifelse(age <= 18 & sex == 1, 1, 0)] %>% 
   .[, match_male_child := ifelse(male_child == 1 & match == 1, 1, 0)] %>%
   .[, male_child_hh := max(male_child), by = serial] %>% 
   .[, match_male_child_hh := max(match_male_child), by = serial] %>% 
   .[male_child_hh == 1]
+
+message(uniqueN(sample$serial), ' HH with male children')
+
+message(uniqueN(sample[match_male_child_hh == 1, serial]), 
+        ' HH with matched male children')
+
+message(sum(sample$match_male_child), ' matched male children')
 
 # Export -----------------------------------------------------------------------
 
