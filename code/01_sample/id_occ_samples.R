@@ -12,13 +12,16 @@ source("../supporting_code/define_fxns.R")
 
 start_log_file("log/id_occ_samples")
 
+# wd <- '~/Documents/projects/census_neighbor/data/'
+wd <- '~/liran/census_neighbor/data/'
+
 # Build Sample -----------------------------------------------------------------
 year <- 1880
 sub_sample <- ""
 occ_codes <- c("058", "075", "093")
 
 message("Start ", year, ".")
-dt <- fread(paste0("../../data/census_raw/ipums_", year, sub_sample, 
+dt <- fread(paste0(wd, "census_raw/ipums_", year, sub_sample, 
                    ".csv")) %>% 
   setnames(tolower(names(.)))
 
@@ -26,7 +29,7 @@ dt <- fread(paste0("../../data/census_raw/ipums_", year, sub_sample,
 year1 <- 1880
 year2 <- 1900
 method <- "abe_nysiis_standard"
-xwalk <- fread(paste0("../../data/crosswalks/crosswalk_", year1, "_", year2, 
+xwalk <- fread(paste0(wd, "crosswalks/crosswalk_", year1, "_", year2, 
                       ".csv")) %>%
   .[get(method) == 1] %>%
   .[, paste0("histid_", c(year1, year2)), with = FALSE]
@@ -40,7 +43,7 @@ dt %<>%
   merge(xwalk, by.x = "histid", by.y = paste0("histid_", 1880), all.x = T) %>% 
   .[, match := ifelse(!is.na(histid_1900), 1, 0)]
 
-
+# mean(dt[sex == 1, match])
 
 # Define page number
 dt %<>% 
@@ -84,20 +87,31 @@ for (occ in occ_codes) {
   
   occ_sample <- dt %>%
     merge(occ_dist, by = "serial") %>%
-    .[, .(histid, histid_1900, year, serial, reel_seq_page, hh_line, pernum, relate, 
-          occ_dist, sex, age, occ1950, occscore, erscor50, match)] 
+    .[, .(histid, histid_1900, year, serial, reel_seq_page, hh_line, pernum, 
+          relate, occ_dist, sex, age, occ1950, occscore, erscor50, match)] 
   
   occ_sample %<>% 
     .[, male_child := ifelse(age <= 18 & sex == 1, 1, 0)] %>% 
+    .[, match_male_child := ifelse(male_child == 1 & match == 1, 1, 0)] %>%
     .[, male_child_hh := max(male_child), by = serial] %>% 
-    .[male_child_hh == 1, ] %>% 
-    .[, match_hh := max(match), by = serial]
+    .[, match_male_child_hh := max(match_male_child), by = serial] %>% 
+    .[male_child_hh == 1]
   
-  fwrite(occ_sample, paste0("../../data/cleaned/occ_", occ, "_sample_", year, 
+  message(uniqueN(occ_sample$serial), ' HH with male children')
+  
+  message(uniqueN(occ_sample[match_male_child_hh == 1, serial]), 
+          ' HH with matched male children')
+  
+  message(sum(occ_sample$match_male_child), ' matched male children')
+  
+  fwrite(occ_sample, paste0(wd, "cleaned/occ_", occ, "_sample_", year, 
                             sub_sample, ".csv"))
+  
+  rm(occ_sample, occ_dist, occ_loc, dt_occ)
+  
 }
 
-rm(occ_sample, occ_dist, occ_loc, dt_occ)
+
 message("End ", year, ".")
 
 # End --------------------------------------------------------------------------
