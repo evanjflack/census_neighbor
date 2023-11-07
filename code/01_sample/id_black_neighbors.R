@@ -15,10 +15,10 @@ start_log_file("log/id_black_neighbors")
 # Build Sample -----------------------------------------------------------------
 
 year <- 1880
-sub_sample <- ""
+sub_sample <- "_ny"
 
-# wd <- '~/Documents/projects/census_neighbor/data/'
-wd <- '~/liran/census_neighbor/data/'
+wd <- '~/Documents/projects/census_neighbor/data/'
+# wd <- '~/liran/census_neighbor/data/'
 
 dt <- fread(paste0(wd, "census_raw/ipums_", year, sub_sample, 
                    ".csv")) %>% 
@@ -48,20 +48,10 @@ dt %<>%
   .[, page_num := ave(lag_larger, reel, microseq, FUN = cumsum)] %>% 
   .[, reel_seq_page := paste(reel, microseq, page_num, sep = "_")] %>% 
   .[, reel_seq_page_line := paste(reel_seq_page, line, sep = "_")] %>% 
-  .[, `:=`(lag_line = NULL, lag_larger = NULL)]
-
-dt %<>% 
+  .[, `:=`(lag_line = NULL, lag_larger = NULL)] %>%
   .[, hh_line := c(1, rep(0, .N - 1)), by = serial] %>% 
   .[, hh_line := ave(hh_line, reel_seq_page, FUN = cumsum)]
 
-# Location of black households
- black_loc <- dt %>% 
-   .[race == 2, ] %>% 
-   .[, .(reel_seq_page, hh_line)] %>% 
-   unique() %>%
-   setnames("hh_line", "black_line")
-
- 
 hh_sample <- dt %>% 
   .[, black := ifelse(race == 2, 1, 0)] %>%
   .[, white := ifelse(race == 1, 1, 0)] %>%
@@ -72,37 +62,43 @@ hh_sample <- dt %>%
   .[, reel := str_split_fixed(reel_seq_page, "_", 3)[, 1]] %>% 
   .[, seq := str_split_fixed(reel_seq_page, "_", 3)[, 2]] %>% 
   .[, page := str_split_fixed(reel_seq_page, "_", 3)[, 3]] %>% 
-  .[, ord := seq(1, .N), by = .(reel, seq)]
+  .[, ord := seq(1, .N), by = .(reel, seq)] %>% 
+  .[, reel_seq := paste(reel, seq, sep = "_")]
 
-black_hh = hh_sample %>% 
+black_hh <- hh_sample %>% 
   .[black == 1, ] %>% 
-  .[, .(reel, seq, ord)] %>% 
+  .[, .(reel_seq, ord)] %>% 
   setnames('ord', 'black_ord')
 
 white_hh <- hh_sample %>% 
   .[white == 1, ] %>% 
-  .[, .(reel, seq, ord)]
+  .[, .(reel_seq, ord)]
 
-match <- white_hh %>% 
-  merge(black_hh, on = c('reel', 'seq'), allow.cartesian = T) %>% 
-  .[, dist := abs(ord - black_ord)] 
+vars <- unique(hh_sample$reel_seq)
+black_dist <- data.table()
+for (i in vars) {
+  black_dist1 <- white_hh[reel_seq == i] %>% 
+    merge(black_hh[reel_seq == i], on = 'reel_seq', allow.cartesian = T) %>% 
+    .[, dist := abs(ord - black_ord)]  %>% 
+    .[dist <= 10]
+  
+  if (nrow(black_dist1) > 0) {
+    black_dist1 %<>% 
+      .[, .(black_dist = min(dist)), by = .(reel_seq, ord)]
+    black_dist %<>% rbind(black_dist1)
+  }
+}
 
-black_dist <- match %>% 
-  .[dist <= 10, ] %>% 
-  .[, .(black_dist = min(dist)), by = .(reel, seq, ord)] %>% 
-  merge(hh_sample[, .(serial, reel, page, seq, ord, black, white)], by = c("reel", "seq", "ord"), 
-        all.y = T) %>%
-  .[, black_page := max(black), by = .(reel, seq, page)] %>% 
-  .[is.na(black_dist), black_dist := 99] %>% 
+black_dist  %<>%
+  merge(hh_sample[, .(serial, reel_seq, ord)], 
+        by = c("reel_seq", "ord"))  %>% 
   .[, .(serial, black_dist)]
 
- # White individuals within 10 lines of a black hh
 sample <- dt %>%
-  merge(black_dist, by = "serial") %>%
+  merge(black_dist, by = "serial") %>% 
  .[, .(histid,  year, serial, reel_seq_page, hh_line, pernum, 
         black_dist, sex, age, race, nativity, school, lit,
-       relate, occscore, erscor50)] %>% 
-  .[black_dist <= 10, ]
+       relate, occscore, erscor50)] 
 
 sample %<>% 
   .[, histid := tolower(histid)] %>% 
@@ -110,7 +106,6 @@ sample %<>%
   .[, match := ifelse(!is.na(histid_1900), 1, 0)]
 
 message(round(mean(sample[sex == 1, match]), 3) * 100, '% sample match')
-
 
 sample %<>% 
   .[, male_child := ifelse(age <= 18 & sex == 1, 1, 0)] %>% 

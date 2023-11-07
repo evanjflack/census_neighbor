@@ -17,7 +17,7 @@ wd <- '~/Documents/projects/census_neighbor/data/'
 # start_log_file("log/id_black_neighbors")
 
 year <- 1880
-sub_sample <- "_ny"
+sub_sample <- ""
 sample <- fread(paste0(wd, "cleaned/black_neighbor_sample_", year, 
                        sub_sample, ".csv"))
 
@@ -36,10 +36,11 @@ head(hh_sample)
 
 
 dtp <- hh_sample %>%
-  .[, .N, by = black_dist]
+  .[, .N, by = .(black_dist,  black_line)]
 
-ggplot(dtp) + 
+ggplot(dtp[black_line %in% c(1, 10, 20)]) + 
   aes(x = black_dist, y = N) + 
+  facet_wrap(~ black_line) + 
   geom_bar(stat = 'identity')
 
 uniqueN(hh_sample$black_line)
