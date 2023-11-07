@@ -17,7 +17,7 @@ wd <- '~/Documents/projects/census_neighbor/data/'
 # start_log_file("log/id_black_neighbors")
 
 year <- 1880
-sub_sample <- ""
+sub_sample <- "_ny"
 sample <- fread(paste0(wd, "cleaned/black_neighbor_sample_", year, 
                        sub_sample, ".csv"))
 
@@ -32,6 +32,8 @@ hh_sample <- sample %>%
   .[, foreign := ifelse(nativity == 5, 1, 0)] %>% 
   .[, reel := str_split_fixed(reel_seq_page, "_", 3)[, 1]]
 
+head(hh_sample)
+
 
 dtp <- hh_sample %>%
   .[, .N, by = black_dist]
@@ -42,21 +44,36 @@ ggplot(dtp) +
 
 uniqueN(hh_sample$black_line)
 
+hh_sample %<>% 
+  .[, dm_black_dist := black_dist - mean(black_dist), by = reel_seq_page] %>% 
+  .[, dm_is_lit := is_lit - mean(is_lit), by = reel_seq_page] %>% 
+  .[, dm_age := age - mean(age), by = reel_seq_page]
+
+fit <- lm_robust(dm_is_lit ~ dm_black_dist, data = hh_sample[black_dist <= 2])
+
+summary(fit)
+
+fit <- lm_robust(is_lit ~ black_dist, data = hh_sample[black_dist <= 2])
+
+summary(fit)
+
 
 var <- "is_lit"
 
-vars <- c("age", "is_lit")
-FE = TRUE
+vars <- c("age", "is_lit", "foreign")
+
 
 dt_fit <- data.table()
-
 for (var in vars) {
   print(var)
-  hh_sample %<>% 
-    .[, x := get(var)]
+  DT_fit <- copy(hh_sample) %>%
+    .[black_dist <= 10, ] %>% 
+    .[, x := get(var)] %>% 
+    .[, dm_x := x - mean(x), by = reel_seq_page] %>% 
+    .[, dm_black_dist := black_dist - mean(black_dist), by = reel_seq_page]
 
 
-    fit <- lm_robust(x ~ black_dist, data = hh_sample)
+    fit <- lm_robust(x ~ black_dist, data = DT_fit, se_type = 'stata')
     
     dt_fit1 <- tidy(fit) %>% 
       as.data.table() %>% 
@@ -65,14 +82,13 @@ for (var in vars) {
       .[, fe := 0] %>% 
       .[, .(var, estimate, std.error, p.value, fe)]
     
-    fit <- lm_robust(x ~ black_dist, data = hh_sample, 
-                     fixed_effects = ~ black_line)
+    fit <- lm_robust(dm_x ~ dm_black_dist, data = DT_fit, se_type = 'stata')
     
     dt_fit2 <- tidy(fit) %>% 
       as.data.table() %>% 
-      .[term == 'black_dist'] %>% 
+      .[term == 'dm_black_dist'] %>% 
       .[, var := var] %>%
-      .[, fe := 0] %>% 
+      .[, fe := 1] %>% 
       .[, .(var, estimate, std.error, p.value, fe)]
   
 
@@ -82,8 +98,6 @@ for (var in vars) {
 }
 
 print(dt_fit)
-
-
 
 var <- 'is_lit'
 dtp <- hh_sample %>% 

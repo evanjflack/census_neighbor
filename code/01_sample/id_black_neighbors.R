@@ -7,6 +7,7 @@
 library(tictoc)
 suppressMessages(library(data.table, quietly = T))
 library(magrittr)
+library(stringr)
 source("../supporting_code/define_fxns.R")
 
 start_log_file("log/id_black_neighbors")
@@ -60,28 +61,48 @@ dt %<>%
    unique() %>%
    setnames("hh_line", "black_line")
 
- # Distance from closest black hh
- black_dist <- dt  %>%
-   .[, white := ifelse(race == 1, 1, 0)] %>% 
-   .[, hh_white := mean(white), by = serial] %>% 
-   .[hh_white == 1, ] %>%
-   .[, .(serial, reel_seq_page, hh_line)] %>% 
-   unique() %>%
-   merge(black_loc, by = "reel_seq_page", allow.cartesian = T) %>%
-   .[, .(serial, hh_line, black_line)] %>%
-   .[, black_dist := abs(hh_line - black_line)] %>% 
-   .[order(serial, black_dist)] %>%
-   .[, .SD[1], by = serial] %>% 
-   .[black_dist <= 10, ] %>% 
-   .[, .(serial, black_line, black_dist)]
  
+hh_sample <- dt %>% 
+  .[, black := ifelse(race == 2, 1, 0)] %>%
+  .[, white := ifelse(race == 1, 1, 0)] %>%
+  .[, .(black = mean(black), white = mean(white)), 
+    by = .(serial, reel_seq_page, hh_line)] %>% 
+  .[, black := ifelse(black == 1, 1, 0)] %>% 
+  .[, white := ifelse(white == 1, 1, 0)] %>% 
+  .[, reel := str_split_fixed(reel_seq_page, "_", 3)[, 1]] %>% 
+  .[, seq := str_split_fixed(reel_seq_page, "_", 3)[, 2]] %>% 
+  .[, page := str_split_fixed(reel_seq_page, "_", 3)[, 3]] %>% 
+  .[, ord := seq(1, .N), by = .(reel, seq)]
+
+black_hh = hh_sample %>% 
+  .[black == 1, ] %>% 
+  .[, .(reel, seq, ord)] %>% 
+  setnames('ord', 'black_ord')
+
+white_hh <- hh_sample %>% 
+  .[white == 1, ] %>% 
+  .[, .(reel, seq, ord)]
+
+match <- white_hh %>% 
+  merge(black_hh, on = c('reel', 'seq'), allow.cartesian = T) %>% 
+  .[, dist := abs(ord - black_ord)] 
+
+black_dist <- match %>% 
+  .[dist <= 10, ] %>% 
+  .[, .(black_dist = min(dist)), by = .(reel, seq, ord)] %>% 
+  merge(hh_sample[, .(serial, reel, page, seq, ord, black, white)], by = c("reel", "seq", "ord"), 
+        all.y = T) %>%
+  .[, black_page := max(black), by = .(reel, seq, page)] %>% 
+  .[is.na(black_dist), black_dist := 99] %>% 
+  .[, .(serial, black_dist)]
 
  # White individuals within 10 lines of a black hh
 sample <- dt %>%
   merge(black_dist, by = "serial") %>%
  .[, .(histid,  year, serial, reel_seq_page, hh_line, pernum, 
-       black_line, black_dist, sex, age, race, nativity, school, lit,
-       relate, occscore, erscor50)] 
+        black_dist, sex, age, race, nativity, school, lit,
+       relate, occscore, erscor50)] %>% 
+  .[black_dist <= 10, ]
 
 sample %<>% 
   .[, histid := tolower(histid)] %>% 
