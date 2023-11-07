@@ -11,33 +11,97 @@ library(ggplot2)
 library(estimatr)
 source("../supporting_code/define_fxns.R")
 
+wd <- '~/Documents/projects/census_neighbor/data/'
+# wd <- '~/liran/census_neighbor/data/'
+
 # start_log_file("log/id_black_neighbors")
 
 year <- 1880
-sub_sample <- "_ny"
-sample <- fread(paste0("../../data/cleaned/black_neighbor_sample_", year, 
+sub_sample <- ""
+sample <- fread(paste0(wd, "cleaned/black_neighbor_sample_", year, 
                        sub_sample, ".csv"))
-
-View(sample[1:1000])
-
 
 sample %<>% 
   .[match_male_child_hh == 1, ]
 
-head(sample)
-
+library(stringr)
 hh_sample <- sample %>% 
   .[relate == 1] %>% 
-  .[, is_lit := ifelse(lit == 4, 1, 0)]
+  .[, is_lit := ifelse(lit == 4, 1, 0)] %>% 
+  .[, female := ifelse(sex == 2, 1, 0)] %>% 
+  .[, foreign := ifelse(nativity == 5, 1, 0)] %>% 
+  .[, reel := str_split_fixed(reel_seq_page, "_", 3)[, 1]]
+
+
+dtp <- hh_sample %>%
+  .[, .N, by = black_dist]
+
+ggplot(dtp) + 
+  aes(x = black_dist, y = N) + 
+  geom_bar(stat = 'identity')
+
+uniqueN(hh_sample$black_line)
+
 
 var <- "is_lit"
-dtp <- male_sample %>% 
+
+vars <- c("age", "is_lit")
+FE = TRUE
+
+dt_fit <- data.table()
+
+for (var in vars) {
+  print(var)
+  hh_sample %<>% 
+    .[, x := get(var)]
+
+
+    fit <- lm_robust(x ~ black_dist, data = hh_sample)
+    
+    dt_fit1 <- tidy(fit) %>% 
+      as.data.table() %>% 
+      .[term == 'black_dist'] %>% 
+      .[, var := var] %>%
+      .[, fe := 0] %>% 
+      .[, .(var, estimate, std.error, p.value, fe)]
+    
+    fit <- lm_robust(x ~ black_dist, data = hh_sample, 
+                     fixed_effects = ~ black_line)
+    
+    dt_fit2 <- tidy(fit) %>% 
+      as.data.table() %>% 
+      .[term == 'black_dist'] %>% 
+      .[, var := var] %>%
+      .[, fe := 0] %>% 
+      .[, .(var, estimate, std.error, p.value, fe)]
+  
+
+  
+  dt_fit %<>% rbind(dt_fit1, dt_fit2)
+
+}
+
+print(dt_fit)
+
+
+
+var <- 'is_lit'
+dtp <- hh_sample %>% 
   .[, y := get(var)] %>% 
   .[, .(mean = mean(y), 
         sd = sd(y), 
         obs = .N), by = black_dist] %>% 
   .[, se := sd / sqrt(obs)] %>% 
   .[, `:=`(lb = mean - 1.96 * se, ub = mean + 1.96 * se)]
+
+ggplot(dtp) + 
+  aes(x = black_dist, y = mean, ymin = lb, ymax = ub) + 
+  geom_point() + 
+  geom_errorbar()
+
+
+
+summary(fit)
 
 
 
@@ -59,10 +123,7 @@ dtp <- male_sample %>%
   .[, se := sd / sqrt(obs)] %>% 
   .[, `:=`(lb = mean - 1.96 * se, ub = mean + 1.96 * se)]
 
-ggplot(dtp[black_dist <= 10]) + 
-  aes(x = black_dist, y = mean, ymin = lb, ymax = ub) + 
-  geom_point() + 
-  geom_errorbar()
+
 
 
 mean(male_sample)
