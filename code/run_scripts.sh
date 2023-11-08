@@ -4,7 +4,7 @@
 
 
 #SBATCH -o run_scripts.out
-#SBATCH --partition=hns
+#SBATCH --partition=hlwill
 #SBATCH --time=08:00:00
 #SBATCH --mem=100GB
 #SBATCH --ntasks=8
