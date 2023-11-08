@@ -12,12 +12,12 @@ source("../supporting_code/define_fxns.R")
 
 start_log_file("log/id_occ_samples")
 
-wd <- '~/Documents/projects/census_neighbor/data/'
-# wd <- '~/liran/census_neighbor/data/'
+# wd <- '~/Documents/projects/census_neighbor/data/'
+wd <- '~/liran/census_neighbor/data/'
 
 # Build Sample -----------------------------------------------------------------
 year <- 1880
-sub_sample <- "_ny"
+sub_sample <- ""
 # Doctors, teachers, lawyers, clergymen, carpenters, blacksmith
 occ_codes <- c("075", "093", '055', '009', '510', "501")
 
