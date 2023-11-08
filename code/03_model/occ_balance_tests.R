@@ -18,7 +18,8 @@ wd <- '~/Documents/projects/census_neighbor/data/'
 
 year <- 1880
 sub_sample <- "_ny"
-sample <- fread(paste0(wd, "cleaned/occ_093_sample_", year, 
+occ <- "075"
+sample <- fread(paste0(wd, "cleaned/occ_", occ, "_sample_", year, 
                        sub_sample, ".csv"))
 
 sample %<>% 
@@ -37,10 +38,6 @@ dtp <- hh_sample %>%
 ggplot(dtp) + 
   aes(x = occ_dist, y = N) + 
   geom_bar(stat = 'identity')
-
-
-
-
 
 vars <- c("age", "female")
 dt_fit <- data.table()

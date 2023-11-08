@@ -36,14 +36,6 @@ xwalk <- fread(paste0(wd, "crosswalks/crosswalk_", year1, "_", year2,
   .[, paste0("histid_", c(year1, year2)), with = FALSE]
 
 # Prep Data --------------------------------------------------------------------
-dt %<>% 
-  .[gq %in% c(1, 2)]
-
-dt %<>% 
-  .[, histid := tolower(histid)] %>% 
-  merge(xwalk, by.x = "histid", by.y = paste0("histid_", 1880), all.x = T) %>% 
-  .[, match := ifelse(!is.na(histid_1900), 1, 0)]
-
 
 # Define page number
 dt %<>% 
@@ -54,8 +46,9 @@ dt %<>%
   .[, reel_seq_page := paste(reel, microseq, page_num, sep = "_")] %>% 
   .[, `:=`(lag_line = NULL, lag_larger = NULL)] %>%
   .[, hh_line := c(1, rep(0, .N - 1)), by = serial] %>% 
-  .[, hh_line := ave(hh_line, page_num, FUN = cumsum)] %>% 
-  .[, occ1950 := str_pad(occ1950, 3, pad = "0")]
+  .[, hh_line := ave(hh_line, page_num, FUN = cumsum)] %>%
+  .[, occ1950 := str_pad(occ1950, 3, pad = "0")] %>%
+  .[order(reel, microseq, page_num, serial, pernum)]
 
 # Identify HH within 10 lines of occupations
 for (occ in occ_codes) {
@@ -64,7 +57,7 @@ for (occ in occ_codes) {
   hh_sample <- dt %>% 
     .[, paste0("ind_", occ) := ifelse(occ1950 == occ, 1, 0)] %>%
     .[, .(occ_house_ind = max(get(paste0("ind_", occ)))),
-      by = .(serial, reel_seq_page, hh_line)] %>% 
+      by = .(serial, reel_seq_page, hh_line, gq)] %>% 
     .[, reel := str_split_fixed(reel_seq_page, "_", 3)[, 1]] %>% 
     .[, seq := str_split_fixed(reel_seq_page, "_", 3)[, 2]] %>% 
     .[, page := str_split_fixed(reel_seq_page, "_", 3)[, 3]] %>% 
@@ -72,13 +65,14 @@ for (occ in occ_codes) {
     .[, ord := seq(1, .N), by = .(reel, seq)] %>% 
     .[, reel_seq := paste(reel, seq, sep = "_")]
   
-  
   occ_hh <- hh_sample %>% 
+    .[gq %in% c(1, 2)] %>% 
     .[occ_house_ind == 1, ] %>% 
     .[, .(reel_seq, ord)] %>% 
     setnames('ord', 'occ_ord')
   
   non_occ_hh <- hh_sample %>% 
+    .[gq %in% c(1, 2)] %>% 
     .[occ_house_ind == 0, ] %>% 
     .[, .(reel_seq, ord)] 
   
@@ -88,7 +82,8 @@ for (occ in occ_codes) {
     occ_dist1 <- non_occ_hh[reel_seq == i] %>%
       merge(occ_hh[reel_seq == i], on = 'reel_seq', allow.cartesian = T) %>% 
       .[, dist := abs(ord - occ_ord)]  %>% 
-      .[dist <= 10]
+      .[dist <= 10] %>% 
+      .[order(ord)]
     
     if (nrow(occ_dist1) > 0) {
       occ_dist1 %<>% 
@@ -96,6 +91,8 @@ for (occ in occ_codes) {
       occ_dist %<>% rbind(occ_dist1)
     }
   }
+  
+  
     
   occ_dist  %<>%
     merge(hh_sample[, .(serial, reel_seq, ord)], 
@@ -104,7 +101,7 @@ for (occ in occ_codes) {
   
   sample <- dt %>%
     merge(occ_dist, by = "serial") %>% 
-    .[, .(histid,  year, serial, reel_seq_page, hh_line, pernum, 
+    .[, .(histid,  year, serial, reel_seq_page, hh_line, pernum, gq,
           occ_dist, sex, age, race, nativity, school, lit,
           relate, occscore, erscor50)]
   
@@ -132,14 +129,12 @@ for (occ in occ_codes) {
   sample %<>% 
     .[order(serial, pernum)]
   
-  
   fwrite(sample, paste0(wd, "cleaned/occ_", occ, "_sample_", year, 
                         sub_sample, ".csv"))
   
   # rm(occ_sample, occ_dist, occ_loc, dt_occ)
   
 }
-
 
 message("End ", year, ".")
 
