@@ -98,7 +98,7 @@ sample <- dt %>%
   merge(black_dist, by = "serial") %>% 
  .[, .(histid,  year, serial, reel_seq_page, hh_line, pernum, 
         black_dist, sex, age, race, nativity, school, lit,
-       relate, occscore, erscor50)] 
+       relate, occscore, erscor50)]
 
 sample %<>% 
   .[, histid := tolower(histid)] %>% 

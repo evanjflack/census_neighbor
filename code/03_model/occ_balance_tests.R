@@ -17,8 +17,8 @@ wd <- '~/Documents/projects/census_neighbor/data/'
 # start_log_file("log/id_black_neighbors")
 
 year <- 1880
-sub_sample <- ""
-sample <- fread(paste0(wd, "cleaned/black_neighbor_sample_", year, 
+sub_sample <- "_ny"
+sample <- fread(paste0(wd, "cleaned/occ_093_sample_", year, 
                        sub_sample, ".csv"))
 
 sample %<>% 
@@ -27,93 +27,75 @@ sample %<>%
 library(stringr)
 hh_sample <- sample %>% 
   .[relate == 1] %>% 
-  .[, is_lit := ifelse(lit == 4, 1, 0)] %>% 
   .[, female := ifelse(sex == 2, 1, 0)] %>% 
-  .[, foreign := ifelse(nativity == 5, 1, 0)] %>% 
   .[, reel := str_split_fixed(reel_seq_page, "_", 3)[, 1]]
 
 
 dtp <- hh_sample %>%
-  .[, .N, by = .(black_dist)]
+  .[, .N, by = .(occ_dist)]
 
 ggplot(dtp) + 
-  aes(x = black_dist, y = N) + 
+  aes(x = occ_dist, y = N) + 
   geom_bar(stat = 'identity')
 
-uniqueN(hh_sample$black_line)
 
 
-hh_sample %<>% 
-  .[, dm_black_dist := black_dist - mean(black_dist), by = reel_seq_page] %>% 
-  .[, dm_is_lit := is_lit - mean(is_lit), by = reel_seq_page] %>% 
-  .[, dm_age := age - mean(age), by = reel_seq_page]
-
-fit <- lm_robust(dm_is_lit ~ dm_black_dist, data = hh_sample[black_dist <= 2])
-
-summary(fit)
-
-fit <- lm_robust(is_lit ~ black_dist, data = hh_sample[black_dist <= 2])
-
-summary(fit)
 
 
-var <- "is_lit"
-
-vars <- c("age", "is_lit", "foreign")
-
-
+vars <- c("age", "female")
 dt_fit <- data.table()
 for (var in vars) {
   print(var)
   DT_fit <- copy(hh_sample) %>%
-    .[black_dist <= 10, ] %>% 
+    .[occ_dist <= 10, ] %>% 
     .[, x := get(var)] %>% 
     .[, dm_x := x - mean(x), by = reel_seq_page] %>% 
-    .[, dm_black_dist := black_dist - mean(black_dist), by = reel_seq_page]
-
-
-    fit <- lm_robust(x ~ black_dist, data = DT_fit, se_type = 'stata')
-    
-    dt_fit1 <- tidy(fit) %>% 
-      as.data.table() %>% 
-      .[term == 'black_dist'] %>% 
-      .[, var := var] %>%
-      .[, fe := 0] %>% 
-      .[, mean := mean(DT_fit$x)] %>%
-      .[, .(var, mean, estimate, std.error, p.value, fe)]
-    
-    fit <- lm_robust(dm_x ~ dm_black_dist, data = DT_fit, se_type = 'stata')
-    
-    dt_fit2 <- tidy(fit) %>% 
-      as.data.table() %>% 
-      .[term == 'dm_black_dist'] %>% 
-      .[, var := var] %>%
-      .[, fe := 1] %>% 
-      .[, mean := mean(DT_fit$x)] %>%
-      .[, .(var, mean, estimate, std.error, p.value, fe)]
+    .[, dm_occ_dist := occ_dist - mean(occ_dist), by = reel_seq_page]
   
-
+  
+  fit <- lm_robust(x ~ occ_dist, data = DT_fit, se_type = 'stata')
+  
+  dt_fit1 <- tidy(fit) %>% 
+    as.data.table() %>% 
+    .[term == 'occ_dist'] %>% 
+    .[, var := var] %>%
+    .[, fe := 0] %>% 
+    .[, mean := mean(DT_fit$x)] %>%
+    .[, .(var, mean, estimate, std.error, p.value, fe)]
+  
+  fit <- lm_robust(dm_x ~ dm_occ_dist, data = DT_fit, se_type = 'stata')
+  
+  dt_fit2 <- tidy(fit) %>% 
+    as.data.table() %>% 
+    .[term == 'dm_occ_dist'] %>% 
+    .[, var := var] %>%
+    .[, fe := 1] %>% 
+    .[, mean := mean(DT_fit$x)] %>%
+    .[, .(var, mean, estimate, std.error, p.value, fe)]
+  
+  
   
   dt_fit %<>% rbind(dt_fit1, dt_fit2)
-
+  
 }
 
 dt_fit %<>% 
   .[, perc := estimate /mean]
 
+
 print(dt_fit)
 
-var <- 'is_lit'
+var <- 'age'
 dtp <- hh_sample %>% 
   .[, y := get(var)] %>% 
   .[, .(mean = mean(y), 
         sd = sd(y), 
-        obs = .N), by = black_dist] %>% 
+        obs = .N), by = occ_dist] %>% 
   .[, se := sd / sqrt(obs)] %>% 
   .[, `:=`(lb = mean - 1.96 * se, ub = mean + 1.96 * se)]
 
 ggplot(dtp) + 
-  aes(x = black_dist, y = mean, ymin = lb, ymax = ub) + 
+  aes(x = occ_dist, y = mean, ymin = lb, ymax = ub) + 
   geom_point() + 
   geom_errorbar()
 
@@ -148,7 +130,7 @@ mean(male_sample)
 
 
 fit <- lm(occscore ~ black_dist, 
-                 data = male_sample[occscore > 0 & match == 1 & black_dist <= 5])
+          data = male_sample[occscore > 0 & match == 1 & black_dist <= 5])
 summary(fit)
 
 
