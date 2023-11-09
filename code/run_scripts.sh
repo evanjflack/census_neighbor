@@ -27,4 +27,4 @@ cd 01_sample/
 
 # Rscript id_occ_samples.R
 
-Rscript new_black_neighbors.R
+Rscript new_occ.R

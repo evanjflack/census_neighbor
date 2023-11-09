@@ -18,7 +18,7 @@ wd <- '~/Documents/projects/census_neighbor/data/'
 
 year <- 1880
 sub_sample <- ""
-sample <- fread(paste0(wd, "cleaned/black_neighbor_sample_", year, 
+sample <- fread(paste0(wd, "cleaned/new_black_neighbor_sample_", year, 
                        sub_sample, ".csv"))
 
 sample %<>% 
@@ -40,28 +40,8 @@ ggplot(dtp) +
   aes(x = black_dist, y = N) + 
   geom_bar(stat = 'identity')
 
-uniqueN(hh_sample$black_line)
-
-
-hh_sample %<>% 
-  .[, dm_black_dist := black_dist - mean(black_dist), by = reel_seq_page] %>% 
-  .[, dm_is_lit := is_lit - mean(is_lit), by = reel_seq_page] %>% 
-  .[, dm_age := age - mean(age), by = reel_seq_page]
-
-fit <- lm_robust(dm_is_lit ~ dm_black_dist, data = hh_sample[black_dist <= 2])
-
-summary(fit)
-
-fit <- lm_robust(is_lit ~ black_dist, data = hh_sample[black_dist <= 2])
-
-summary(fit)
-
-
-var <- "is_lit"
 
 vars <- c("age", "is_lit", "foreign")
-
-
 dt_fit <- data.table()
 for (var in vars) {
   print(var)
@@ -99,7 +79,7 @@ for (var in vars) {
 }
 
 dt_fit %<>% 
-  .[, perc := estimate /mean]
+  .[, perc := round(estimate /mean, 3)]
 
 print(dt_fit)
 
