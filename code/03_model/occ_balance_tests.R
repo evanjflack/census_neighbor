@@ -17,8 +17,8 @@ wd <- '~/Documents/projects/census_neighbor/data/'
 # start_log_file("log/id_black_neighbors")
 
 year <- 1880
-sub_sample <- "_ny"
-occ <- "075"
+sub_sample <- ""
+occ <- "093"
 sample <- fread(paste0(wd, "cleaned/occ_", occ, "_sample_", year, 
                        sub_sample, ".csv"))
 
@@ -29,7 +29,10 @@ library(stringr)
 hh_sample <- sample %>% 
   .[relate == 1] %>% 
   .[, female := ifelse(sex == 2, 1, 0)] %>% 
-  .[, reel := str_split_fixed(reel_seq_page, "_", 3)[, 1]]
+  .[, reel := str_split_fixed(reel_seq_page, "_", 3)[, 1]] %>% 
+  .[, is_lit := ifelse(lit == 4, 1, 0)] %>% 
+  .[, female := ifelse(sex == 2, 1, 0)] %>% 
+  .[, foreign := ifelse(nativity == 5, 1, 0)]
 
 
 dtp <- hh_sample %>%
@@ -39,7 +42,7 @@ ggplot(dtp) +
   aes(x = occ_dist, y = N) + 
   geom_bar(stat = 'identity')
 
-vars <- c("age", "female")
+vars <- c("age", "female", "is_lit", "foreign", "occscore")
 dt_fit <- data.table()
 for (var in vars) {
   print(var)
@@ -48,6 +51,11 @@ for (var in vars) {
     .[, x := get(var)] %>% 
     .[, dm_x := x - mean(x), by = reel_seq_page] %>% 
     .[, dm_occ_dist := occ_dist - mean(occ_dist), by = reel_seq_page]
+  
+  if (var == "occscore") {
+    DT_fit %<>% 
+      .[x > 0, ]
+  }
   
   
   fit <- lm_robust(x ~ occ_dist, data = DT_fit, se_type = 'stata')
@@ -77,12 +85,12 @@ for (var in vars) {
 }
 
 dt_fit %<>% 
-  .[, perc := estimate /mean]
+  .[, perc := round(estimate /mean, 4) * 100]
 
 
 print(dt_fit)
 
-var <- 'age'
+var <- 'female'
 dtp <- hh_sample %>% 
   .[, y := get(var)] %>% 
   .[, .(mean = mean(y), 
@@ -95,8 +103,6 @@ ggplot(dtp) +
   aes(x = occ_dist, y = mean, ymin = lb, ymax = ub) + 
   geom_point() + 
   geom_errorbar()
-
-
 
 summary(fit)
 

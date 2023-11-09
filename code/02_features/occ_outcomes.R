@@ -14,7 +14,7 @@ source("../supporting_code/define_fxns.R")
 wd <- '~/Documents/projects/census_neighbor/data/'
 # wd <- '~/liran/census_neighbor/data/'
 
-# start_log_file("log/id_black_neighbors")
+start_log_file("log/id_black_neighbors")
 
 year <- 1880
 sub_sample <- "_ny"

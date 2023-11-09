@@ -10,15 +10,15 @@ library(magrittr)
 library(stringr)
 source("../supporting_code/define_fxns.R")
 
-start_log_file("log/id_black_neighbors")
+start_log_file("log/new_black_neighbors")
 
 # Build Sample -----------------------------------------------------------------
 
 year <- 1880
-sub_sample <- "_ny"
+sub_sample <- ""
 
-wd <- '~/Documents/projects/census_neighbor/data/'
-# wd <- '~/liran/census_neighbor/data/'
+# wd <- '~/Documents/projects/census_neighbor/data/'
+wd <- '~/liran/census_neighbor/data/'
 
 dt <- fread(paste0(wd, "census_raw/ipums_", year, sub_sample, 
                    ".csv")) %>% 
@@ -28,17 +28,13 @@ dt <- fread(paste0(wd, "census_raw/ipums_", year, sub_sample,
 year1 <- 1880
 year2 <- 1900
 method <- "abe_nysiis_standard"
-xwalk <- fread(paste0(wd, "crosswalks/crosswalk_", year1, "_", year2, 
+xwalk <- fread(paste0(wd, "crosswalks/crosswalk_", year1, "_", year2,
                       ".csv")) %>%
   .[get(method) == 1] %>%
   .[, paste0("histid_", c(year1, year2)), with = FALSE]
 
 dt %<>% 
   .[, histid := tolower(histid)]
-
-# Only standard households (no group quarters)
-# dt %<>% 
-#   .[gq %in% c(1, 2)]
 
 # Define page number
 dt %<>% 
@@ -53,65 +49,38 @@ dt %<>%
   .[, hh_line := ave(hh_line, reel_seq_page, FUN = cumsum)]
 
 hh_sample <- dt %>% 
+  .[relate == 1, ] %>%
   .[, black := ifelse(race == 2, 1, 0)] %>%
   .[, white := ifelse(race == 1, 1, 0)] %>%
-  .[, .(black = mean(black), white = mean(white)), 
-    by = .(serial, reel_seq_page, hh_line, gq)] %>% 
-  .[, black := ifelse(black == 1, 1, 0)] %>% 
-  .[, white := ifelse(white == 1, 1, 0)] %>% 
   .[, reel := str_split_fixed(reel_seq_page, "_", 3)[, 1]] %>% 
   .[, seq := str_split_fixed(reel_seq_page, "_", 3)[, 2]] %>% 
   .[, page := str_split_fixed(reel_seq_page, "_", 3)[, 3]] %>% 
-  .[, ord := seq(1, .N), by = .(reel, seq)] %>% 
-  .[, reel_seq := paste(reel, seq, sep = "_")] %>% 
-  .[, max_ord := max(ord), by = reel_seq]
+  .[, .(serial, reel, seq, page, hh_line, black, white)] %>%
+  .[, black_page := sum(black), by = .(reel, seq, page)]
 
-black_hh <- hh_sample %>% 
-  .[gq %in% c(1, 2)] %>% 
-  .[black == 1, ] %>% 
-  .[, .(reel_seq, ord)] %>% 
-  setnames('ord', 'black_ord')
-
-white_hh <- hh_sample %>% 
-  .[white == 1, ] %>% 
-  .[, .(reel_seq, ord)]
-
-vars <- unique(hh_sample$reel_seq)
-black_dist <- data.table()
-for (i in vars) {
-  black_dist1 <- white_hh[reel_seq == i] %>% 
-    merge(black_hh[reel_seq == i], on = 'reel_seq', allow.cartesian = T) %>% 
-    .[, dist := abs(ord - black_ord)]  %>% 
-    .[dist <= 10]
-  
-  if (nrow(black_dist1) > 0) {
-    # black_dist1 %<>% 
-    #   .[, .(black_dist = min(dist)), by = .(reel_seq, ord)]
-    black_dist %<>% rbind(black_dist1)
-  }
-}
-
-black_dist %<>% 
-  .[order(reel_seq, ord, dist)] %>% 
-  .[, obs := .N, by = .(reel_seq, ord)]
-
-hi <- black_dist[obs == 1] %>% 
-  .[, .(.N), by = dist] %>% 
-  .[order(dist)]
-
-black_dist  %<>%
-  merge(hh_sample[, .(serial, reel_seq, ord)], 
-        by = c("reel_seq", "ord"))  %>% 
-  .[, .(serial, black_dist)]
+black_dist <- hh_sample %>% 
+  .[black_page == 1] %>% 
+  .[, black_line := ifelse(black == 1, hh_line, 0)] %>% 
+  .[, black_line := max(black_line), by = .(reel, seq, page)] %>% 
+  .[, max_line := max(hh_line), by = .(reel, seq, page)] %>% 
+  .[, max_dist := min(black_line - 1, max_line - black_line - 1), by = .(reel, seq, page)] %>% 
+  .[, black_dist := abs(black_line - hh_line)] %>% 
+  .[black_dist <= max_dist, ] %>% 
+  .[black_dist != 0] %>%
+  .[black_dist <= 10] %>% 
+  .[, obs_page := .N, by = .(reel, seq, page)] %>% 
+  .[, max_black_dist := max(black_dist), by = .(reel, seq, page)] %>% 
+  .[obs_page == max_black_dist * 2, ] %>%
+  .[obs_page %in% seq(2, 40, 2)] %>% 
+  .[, .(serial, black_dist, black_line)]
 
 sample <- dt %>%
   merge(black_dist, by = "serial") %>% 
- .[, .(histid,  year, serial, reel_seq_page, hh_line, pernum, 
-        black_dist, sex, age, race, nativity, school, lit,
-       relate, occscore, erscor50)]
+  .[, .(histid,  year, serial, reel_seq_page, hh_line, pernum, 
+        black_dist, black_line, sex, age, race, nativity, school, lit,
+        relate, occscore, erscor50)]
 
 sample %<>% 
-  .[, histid := tolower(histid)] %>% 
   merge(xwalk, by.x = "histid", by.y = paste0("histid_", 1880), all.x = T) %>% 
   .[, match := ifelse(!is.na(histid_1900), 1, 0)]
 
@@ -136,7 +105,7 @@ sample %<>%
 
 # Export -----------------------------------------------------------------------
 
-fwrite(sample, paste0(wd, "cleaned/black_neighbor_sample_", year, 
+fwrite(sample, paste0(wd, "cleaned/new_black_neighbor_sample_", year, 
                       sub_sample, ".csv"))
 
 end_log_file()
