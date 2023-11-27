@@ -19,7 +19,7 @@ wd <- '~/Documents/projects/census_neighbor/data/'
 year <- 1880
 sub_sample <- ""
 occ <- "093"
-sample <- fread(paste0(wd, "cleaned/occ_", occ, "_sample_", year, 
+sample <- fread(paste0(wd, "cleaned/new_occ_", occ, "_sample_", year, 
                        sub_sample, ".csv"))
 
 sample %<>% 
@@ -85,10 +85,10 @@ for (var in vars) {
 }
 
 dt_fit %<>% 
-  .[, perc := round(estimate /mean, 4) * 100]
+  .[, perc := round(estimate /mean, 4)]
 
 
-print(dt_fit)
+print(dt_fit[fe == 1])
 
 var <- 'female'
 dtp <- hh_sample %>% 

@@ -81,6 +81,7 @@ for (var in vars) {
 dt_fit %<>% 
   .[, perc := round(estimate /mean, 3)]
 
+
 print(dt_fit)
 
 var <- 'is_lit'
