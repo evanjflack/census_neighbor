@@ -16,11 +16,44 @@ wd <- '~/Documents/projects/census_neighbor/data/'
 
 # start_log_file("log/id_black_neighbors")
 
-year <- 1880
+year1 <- 1880
+year2 <- 1900
 sub_sample <- ""
 occ <- "093"
+
+
+pre_sample <- fread(paste0(wd, "cleaned/new_occ_", occ, "_sample_", year1, 
+                           sub_sample, ".csv")) %>% 
+  .[match_male_child == 1, ] %>% 
+  .[, .(histid_1900, occ_dist, reel_seq_page)] %>% 
+  .[, histid_1900 := tolower(histid_1900)] %>% 
+  setnames('histid_1900', 'histid')
+
+DT_fit <- fread(paste0(wd, "cleaned/occ_", occ, "_outcomes_", year2, 
+                         sub_sample, ".csv"))
+
+DT_fit %<>% 
+  .[, dm_y := y - mean(y), by = reel_seq_page] %>% 
+  .[, dm_occ_dist := occ_dist - mean(occ_dist), by = reel_seq_page]
+
+fit <- lm_robust(dm_y ~ dm_occ_dist, data = DT_fit, se_type = 'stata')
+
+
+dt_fit1 <- tidy(fit) %>% 
+  as.data.table() %>% 
+  .[term == 'dm_occ_dist'] %>% 
+  .[, mean := mean(DT_fit$y)] %>% 
+  .[, perc := round(estimate / mean, 4)] %>% 
+  .[, .(estimate, p.value, perc)]
+
+print(dt_fit1)
+
+
+
 sample <- fread(paste0(wd, "cleaned/new_occ_", occ, "_sample_", year, 
                        sub_sample, ".csv"))
+
+
 
 sample %<>% 
   .[match_male_child_hh == 1, ]
