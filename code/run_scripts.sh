@@ -21,14 +21,12 @@ ml load R/4.1.2
 
 # Rscript match_doctor_sample.R
 
-# cd 01_sample/
+cd 01_sample/
+Rscript new_occ.R
 
 # Rscript id_black_neighbors.R
 
 # Rscript id_occ_samples.R
 
-# Rscript new_occ.R
-
-cd 02_features
-
-Rscript occ_outcomes.R 
+# cd 02_features
+# Rscript occ_outcomes.R 
