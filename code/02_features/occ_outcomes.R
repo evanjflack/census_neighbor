@@ -46,7 +46,7 @@ for (occ in occ_codes) {
   names(post_sample)
   
   post_sample %<>% 
-    .[, .(histid, serial, y, occ_dist, reel_seq_page, age, race, statefip)]
+    .[, .(histid, serial, y, occ_dist, reel_seq_page, race, statefip)]
   
   fwrite(post_sample, paste0(wd, "cleaned/occ_", occ, "_outcomes_", year2, 
                              sub_sample, ".csv"))
