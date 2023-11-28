@@ -30,26 +30,36 @@ for (i in 1:length(occ_codes)) {
   print(occ_labs[i])
   
   DT_fit <- fread(paste0(wd, "cleaned/occ_", occ_codes[i], "_outcomes_", year2, 
-                         sub_sample, ".csv"))
-    .[, occ1950 := str_pad(occ1950, 3, pad = "0")]
+                         sub_sample, ".csv")) %>% 
+    .[, occ1950 := str_pad(occ1950, 3, pad = "0")] %>% 
+    .[, y := NULL]
   
-  for (j in occ_codes) {
+  dt_fit1 <- data.table()
+  for (j in 1:length(occ_codes)) {
     DT_fit %<>% 
-      
+      .[, y := ifelse(occ1950 == occ_codes[j], 1, 0)] %>%
       .[, dm_y := y - mean(y), by = reel_seq_page] %>% 
       .[, dm_occ_dist := occ_dist - mean(occ_dist), by = reel_seq_page]
     
     
     fit <- lm_robust(dm_y ~ dm_occ_dist, data = DT_fit, se_type = 'stata')
+    
+    dt_fit2 <- tidy(fit) %>% 
+      as.data.table() %>% 
+      .[term == 'dm_occ_dist'] %>% 
+      .[, .(estimate, std.error, p.value)] %>%
+      .[, mean := mean(DT_fit$y)] %>% 
+      .[, outcome_occ := occ_labs[j]] %>% 
+      .[, sample_occ := occ_labs[i]] %>% 
+      .[, perc := round(estimate / mean, 3) * 100]
+    
+    dt_fit1 %<>% rbind(dt_fit2)
   }
   
  
   
-  dt_fit1 <- tidy(fit) %>% 
-    as.data.table() %>% 
-    .[term == 'dm_occ_dist'] %>% 
-    .[, mean := mean(DT_fit$y)] %>% 
-    .[, perc := round(estimate / mean, 3) * 100] %>% 
+  
+    
     .[, `:=`(estimate = round(estimate * 100, 3), 
              std.error = round(std.error * 100, 3), 
              mean = round(mean * 100, 3))] %>% 
@@ -59,7 +69,7 @@ for (i in 1:length(occ_codes)) {
     .[, estimate := paste0(estimate, stars1)] %>%
     .[, est_se := paste0("\\begin{tabular}{@{}c@{}}", estimate,
                          "\\\\ (", std.error,  ")\\end{tabular}")] %>% 
-    .[, occ := occ_labs[i]] %>%
+    .[, occ := ] %>%
     .[, obs := nrow(DT_fit)] %>%
     .[, .(occ, obs, mean, est_se, perc)]
   
