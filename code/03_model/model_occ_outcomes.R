@@ -22,21 +22,28 @@ year2 <- 1900
 sub_sample <- ""
 
 occ_codes <- c("075", "093", '055', '009', '510', "501")
-occ_labs <- c("Doctor", "Teacher", "Lawyer", "Clergy", "Carpenter", "Blacksmith")
+occ_labs <- c("Doctor", "Teacher", "Lawyer", "Clergy", "Carpenter", 
+              "Blacksmith")
 
 dt_fit <- data.table()
 for (i in 1:length(occ_codes)) {
-  print(occ_codes[i])
+  print(occ_labs[i])
   
   DT_fit <- fread(paste0(wd, "cleaned/occ_", occ_codes[i], "_outcomes_", year2, 
                          sub_sample, ".csv"))
+    .[, occ1950 := str_pad(occ1950, 3, pad = "0")]
   
-  DT_fit %<>% 
-    .[, dm_y := y - mean(y), by = reel_seq_page] %>% 
-    .[, dm_occ_dist := occ_dist - mean(occ_dist), by = reel_seq_page]
-
+  for (j in occ_codes) {
+    DT_fit %<>% 
+      
+      .[, dm_y := y - mean(y), by = reel_seq_page] %>% 
+      .[, dm_occ_dist := occ_dist - mean(occ_dist), by = reel_seq_page]
+    
+    
+    fit <- lm_robust(dm_y ~ dm_occ_dist, data = DT_fit, se_type = 'stata')
+  }
   
-  fit <- lm_robust(dm_y ~ dm_occ_dist, data = DT_fit, se_type = 'stata')
+ 
   
   dt_fit1 <- tidy(fit) %>% 
     as.data.table() %>% 

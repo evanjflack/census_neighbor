@@ -16,8 +16,7 @@ wd <- '~/liran/census_neighbor/data/'
 year1 <- 1880
 year2 <- 1900
 sub_sample <- ""
-# occ_codes <- c("075", "093")
-occ_codes <- c('055', '009', '510', "501")
+occ_codes <- c("075", "093", '055', '009', '510', "501")
 
 start_log_file("log/occ_outcomes")
 
