@@ -26,8 +26,7 @@ start_log_file("log/occ_outcomes")
 dt <- fread(paste0(wd, "census_raw/ipums_", year2, sub_sample, 
                    ".csv")) %>% 
   setnames(tolower(names(.))) %>% 
-  .[, histid := tolower(histid)] %>% 
-  setnames("age", "age2")
+  .[, histid := tolower(histid)]
 
 for (occ in occ_codes) {
   print(occ)
@@ -45,7 +44,7 @@ for (occ in occ_codes) {
     .[, occ1950 := str_pad(occ1950, 3, pad = "0")]
   
   post_sample %<>% 
-    .[, .(histid, serial, occ1950, occ_dist, reel_seq_page, age1, age, race, 
+    .[, .(histid, serial, occ1950, occ_dist, reel_seq_page, age1, race, 
           statefip)]
   
   fwrite(post_sample, paste0(wd, "cleaned/occ_", occ, "_outcomes_", year2, 
