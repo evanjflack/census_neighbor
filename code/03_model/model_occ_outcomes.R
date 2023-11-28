@@ -26,7 +26,7 @@ occ_labs <- c("Doctor", "Teacher", "Lawyer", "Clergy", "Carpenter",
               "Blacksmith")
 
 dt_fit <- data.table()
-for (i in 1:length(occ_codes)) {
+for (i in 3:length(occ_codes)) {
   print(occ_labs[i])
   
   DT_fit <- fread(paste0(wd, "cleaned/occ_", occ_codes[i], "_outcomes_", year2, 
@@ -56,10 +56,7 @@ for (i in 1:length(occ_codes)) {
     dt_fit1 %<>% rbind(dt_fit2)
   }
   
- 
-  
-  
-    
+  dt_fit1 %<>%
     .[, `:=`(estimate = round(estimate * 100, 3), 
              std.error = round(std.error * 100, 3), 
              mean = round(mean * 100, 3))] %>% 
@@ -69,12 +66,9 @@ for (i in 1:length(occ_codes)) {
     .[, estimate := paste0(estimate, stars1)] %>%
     .[, est_se := paste0("\\begin{tabular}{@{}c@{}}", estimate,
                          "\\\\ (", std.error,  ")\\end{tabular}")] %>% 
-    .[, occ := ] %>%
     .[, obs := nrow(DT_fit)] %>%
-    .[, .(occ, obs, mean, est_se, perc)]
-  
+    .[, .(sample_occ, outcome_occ, obs, mean, est_se, perc)]
   dt_fit %<>% rbind(dt_fit1)
-  
 }
 
 print(xtable(dt_fit), sanitize.text.function = force, 

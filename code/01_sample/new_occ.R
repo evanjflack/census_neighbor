@@ -17,7 +17,7 @@ start_log_file("log/new_occ")
 year <- 1880
 sub_sample <- ""
 
-# wd <- '~/Documents/projects/census_neighbor/data/'
+wd <- '~/Documents/projects/census_neighbor/data/'
 wd <- '~/liran/census_neighbor/data/'
 
 dt <- fread(paste0(wd, "census_raw/ipums_", year, sub_sample, 
@@ -51,9 +51,14 @@ dt %<>%
 dt %<>% 
   .[, occ1950 := str_pad(occ1950, 3, pad = "0")]
 
+top_occ <- fread(paste0(wd, "cleaned/top_occ_with_labs.csv")) %>% 
+  .[, occ1950 := str_pad(occ1950, 3, pad = "0")]
+
+occ_codes <- top_occ[sample_include == 1, occ1950]
+
 
 # Doctors, teachers, lawyers, clergymen, carpenters, blacksmith
-occ_codes <- c("075", "093", '055', '009', '510', "501")
+# occ_codes <- c("075", "093", '055', '009', '510', "501")
 for (occ in occ_codes) {
   print(occ)
   hh_sample <- dt %>% 
