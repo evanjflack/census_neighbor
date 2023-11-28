@@ -52,8 +52,8 @@ dt %<>%
   .[, occ1950 := str_pad(occ1950, 3, pad = "0")]
 
 
-# occ_codes <- c("075", "093")
-occ_codes <- c('055', '009', '510', "501")
+# Doctors, teachers, lawyers, clergymen, carpenters, blacksmith
+occ_codes <- c("075", "093", '055', '009', '510', "501")
 for (occ in occ_codes) {
   print(occ)
   hh_sample <- dt %>% 

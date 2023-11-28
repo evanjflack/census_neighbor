@@ -9,6 +9,7 @@ suppressMessages(library(data.table, quietly = T))
 library(magrittr)
 library(ggplot2)
 library(estimatr)
+library(xtable)
 source("../supporting_code/define_fxns.R")
 
 wd <- '~/Documents/projects/census_neighbor/data/'
@@ -19,10 +20,9 @@ wd <- '~/Documents/projects/census_neighbor/data/'
 year1 <- 1880
 year2 <- 1900
 sub_sample <- ""
-occ <- "093"
 
-occ_codes <- c("093", "075")
-occ_labs <- c("Teacher", "Doctor")
+occ_codes <- c("075", "093", '055', '009', '510', "501")
+occ_labs <- c("Doctor", "Teacher", "Lawyer", "Clergy", "Carpenter", "Blacksmith")
 
 dt_fit <- data.table()
 for (i in 1:length(occ_codes)) {
@@ -59,6 +59,11 @@ for (i in 1:length(occ_codes)) {
   dt_fit %<>% rbind(dt_fit1)
   
 }
+
+print(xtable(dt_fit), sanitize.text.function = force, 
+      include.rownames = FALSE)
+
+
 
 pre_sample <- fread(paste0(wd, "cleaned/new_occ_", occ_codes[i], "_sample_", year1, 
                            sub_sample, ".csv")) %>% 
