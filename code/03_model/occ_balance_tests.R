@@ -21,6 +21,13 @@ wd <- '~/Documents/projects/census_neighbor/data/'
 sub_sample <- ""
 
 year <- 1880
+
+top_occ <- fread(paste0(wd, "cleaned/top_occ_with_labs.csv")) %>% 
+  .[, occ1950 := str_pad(occ1950, 3, pad = "0")]
+
+occ_codes <- top_occ[sample_include == 1, occ1950]
+occ_labs <- top_occ[sample_include == 1, label]
+
 # Doctors, teachers, lawyers, clergymen, carpenters, blacksmith
 occ_codes <- c("075", "093", '055', '009', '510', "501")
 occ_labs <- c("Doctor", "Teacher", "Lawyer", "Clergy", "Carpenter", "Blacksmith")
@@ -44,9 +51,6 @@ for (i in 1:length(occ_codes)) {
     .[, female := ifelse(sex == 2, 1, 0)] %>% 
     .[, foreign := ifelse(nativity == 5, 1, 0)]
   
-  
-
-
   for (var in vars) {
     DT_fit <- copy(hh_sample) %>%
       .[occ_dist <= 10, ] %>% 

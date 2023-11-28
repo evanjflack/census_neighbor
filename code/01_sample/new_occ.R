@@ -121,5 +121,4 @@ for (occ in occ_codes) {
                         sub_sample, ".csv"))
 }
 
-
 end_log_file()
