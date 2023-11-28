@@ -29,6 +29,6 @@ ml load R/4.1.2
 # Rscript id_occ_samples.R
 
 cd 02_features
-# Rscript occ_outcomes.R
+Rscript occ_outcomes.R
 
-Rscript candidate_occs.R
+# Rscript candidate_occs.R
