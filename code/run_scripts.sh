@@ -21,14 +21,17 @@ ml load R/4.1.2
 
 # Rscript match_doctor_sample.R
 
-# cd 01_sample/
-# Rscript new_occ.R
+cd 01_sample/
 
-# Rscript id_black_neighbors.R
+Rscript candidate_occs.R 
 
-# Rscript id_occ_samples.R
+Rscript select_occs.R
 
-cd 02_features
-Rscript occ_outcomes.R
-# 
-# Rscript candidate_occs.R
+Rscript id_occ_samples.R
+
+cd ../02_features
+Rscript make_occ_outcomes.R
+
+cd ../03_model
+Rscript occ_balance_tests.R
+Rscript model_occ_outcomes.R
